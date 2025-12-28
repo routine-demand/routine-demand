@@ -1,58 +1,108 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>例行生活需求紀錄</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; line-height: 1.6; padding: 0 20px; }
-    h1 { color: #2c3e50; }
-    a.button {
-      display: inline-block;
-      padding: 10px 20px;
-      margin-top: 20px;
-      background-color: #3498db;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
-    }
-    a.button:hover { background-color: #2980b9; }
-    hr { margin: 30px 0; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>例行生活需求紀錄</title>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; line-height: 1.6; padding: 0 20px; }
+h1 { color: #2c3e50; }
+a.button { display:inline-block; padding:10px 20px; background:#3498db; color:white; text-decoration:none; border-radius:5px; }
+a.button:hover { background:#2980b9; }
+form { margin-top:20px; margin-bottom:30px; }
+input, select, textarea, button { width: 100%; padding:8px; margin:4px 0; box-sizing:border-box; }
+button { background:#3498db; color:white; border:none; border-radius:5px; cursor:pointer; }
+button:hover { background:#2980b9; }
+table { width:100%; border-collapse: collapse; margin-top:20px; }
+th, td { border:1px solid #ccc; padding:8px; text-align:left; }
+th { background:#f5f5f5; }
+</style>
 </head>
 <body>
 
-  <h1>例行生活需求紀錄</h1>
-  <p>歡迎來到「例行生活需求紀錄」小實驗。我們想收集大家日常或辦公會固定購買的生活必需品，例如：零食飲料、衛生紙、清潔用品、辦公文具等等。</p>
+<h1>例行生活需求紀錄</h1>
+<p>歡迎填寫你的例行生活或辦公消耗品需求，提交後會即時顯示在下方表格，讓供應商了解需求量。</p>
 
-  <hr>
+<h2>填寫需求</h2>
+<form id="demandForm" target="_blank" action="https://docs.google.com/forms/d/e/你的GoogleFormID/formResponse" method="POST">
+  <label>身份（選填）：</label>
+  <select name="entry.123456" >
+    <option value="">請選擇</option>
+    <option>小型辦公室 / 工作室</option>
+    <option>家庭</option>
+    <option>其他</option>
+  </select>
 
-  <h2>這個頁面是什麼？</h2>
-  <p>這裡是用來記錄你日後固定會需要的物品清單。<strong>這不是購物網站</strong>，不會幫你下單，也不會配送。</p>
+  <label>地區：</label>
+  <input type="text" name="entry.234567" placeholder="例如：台北市">
 
-  <h2>為什麼要做？</h2>
-  <ul>
-    <li>很多小團隊或家庭每隔一段時間就會買同樣的東西。</li>
-    <li>我們想觀察哪些物品的需求最固定，方便未來參考。</li>
-    <li>收集的資訊只會做統計分析，不會透露個人資料。</li>
-  </ul>
+  <label>物品名稱：</label>
+  <input type="text" name="entry.345678" placeholder="例如：衛生紙" required>
 
-  <h2>誰適合填？</h2>
-  <p>家裡或工作室有例行性生活或辦公用品需求的人，都可以填寫。</p>
+  <label>數量：</label>
+  <input type="number" name="entry.456789" min="1" required>
 
-  <h2>重要聲明 / 免責</h2>
-  <ul>
-    <li>我們不販售或配送任何物品。</li>
-    <li>不會透過此頁面處理任何交易或付款。</li>
-    <li>填寫表單不代表任何義務或承諾。</li>
-    <li>所有資料僅做匿名統計與實驗用途。</li>
-  </ul>
+  <label>購買頻率：</label>
+  <select name="entry.567890" required>
+    <option value="">請選擇</option>
+    <option>每日</option>
+    <option>每週</option>
+    <option>每月</option>
+    <option>不固定</option>
+  </select>
 
-  <a class="button" href="你的GoogleForm連結" target="_blank">填寫你的需求清單</a>
+  <button type="submit">提交需求</button>
+</form>
 
-  <hr>
+<h2>即時需求表</h2>
+<table id="demandTable">
+<thead>
+<tr><th>身份</th><th>地區</th><th>物品</th><th>數量</th><th>頻率</th><th>時間</th></tr>
+</thead>
+<tbody></tbody>
+</table>
 
-  <p style="font-size:0.9em; color: #555;">例行生活需求紀錄 — 一個簡單、公開、匿名的生活必需品需求實驗。</p>
+<script>
+// 你的 Google Sheet CSV 連結
+const sheetCsvUrl = "你的GoogleSheet CSV連結";
+
+// 讀取 Google Sheet 資料並更新表格
+function loadSheet(){
+  Papa.parse(sheetCsvUrl, {
+    download: true,
+    header: true,
+    complete: function(results){
+      const tbody = document.querySelector("#demandTable tbody");
+      tbody.innerHTML = "";
+      results.data.forEach(row => {
+        if(row.物品){
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${row.身份 || "-"}</td>
+            <td>${row.地區 || "-"}</td>
+            <td>${row.物品}</td>
+            <td>${row.數量}</td>
+            <td>${row.頻率}</td>
+            <td>${row.時間 || "-"}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+    }
+  });
+}
+
+// 初次載入
+loadSheet();
+
+// 每 30 秒自動刷新表格
+setInterval(loadSheet, 30000);
+</script>
+
+<p style="font-size:0.9em; color: #555; margin-top:30px;">
+免責聲明：本表單僅收集「例行需求」資訊，非購物或訂單平台，填寫不代表任何交易承諾，所有資料僅作匿名統計與實驗用途。
+</p>
 
 </body>
 </html>
